@@ -1,6 +1,7 @@
 package com.devdenisviana.hidrataai
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +13,33 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
@@ -37,7 +49,8 @@ import java.time.format.DateTimeFormatter
 fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
     val total by viewModel.totalDeHojeMl.collectAsState()
     val registros by viewModel.registrosDeHoje.collectAsState()
-    val copo by viewModel.copoMl.collectAsState()
+    val recipientes by viewModel.recipientes.collectAsState()
+    val selecionado by viewModel.recipienteSelecionado.collectAsState()
 
     val meta = META_PADRAO_ML
     val faltam = restanteMl(total, meta)
@@ -46,6 +59,55 @@ fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
         label = "progresso"
     )
     val formatoHora = remember { DateTimeFormatter.ofPattern("HH:mm") }
+
+    var mostrarOutroValor by rememberSaveable { mutableStateOf(false) }
+    var textoOutroValor by rememberSaveable { mutableStateOf("") }
+
+    if (mostrarOutroValor) {
+        val ml = textoOutroValor.toIntOrNull() ?: 0
+        AlertDialog(
+            onDismissRequest = {
+                mostrarOutroValor = false
+                textoOutroValor = ""
+            },
+            title = { Text("Outro valor") },
+            text = {
+                OutlinedTextField(
+                    value = textoOutroValor,
+                    onValueChange = { novo ->
+                        if (novo.length <= 4 && novo.all { it.isDigit() }) {
+                            textoOutroValor = novo
+                        }
+                    },
+                    label = { Text("Quantidade (ml)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = registroValido(ml),
+                    onClick = {
+                        viewModel.beberOutroValor(ml)
+                        textoOutroValor = ""
+                        mostrarOutroValor = false
+                    }
+                ) {
+                    Text("Beber")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarOutroValor = false
+                        textoOutroValor = ""
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -96,17 +158,21 @@ fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
 
         item {
             Text(
-                text = "Tamanho do copo (ml)",
+                text = "Recipiente",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(100, 200, 300, 400).forEach { ml ->
-                    FilterChip(
-                        selected = copo == ml,
-                        onClick = { viewModel.escolherCopo(ml) },
-                        label = { Text("$ml") }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(recipientes, key = { it.id }) { recipiente ->
+                    CartaoRecipiente(
+                        recipiente = recipiente,
+                        selecionado = recipiente.id == selecionado.id,
+                        aoTocar = { viewModel.escolherRecipiente(recipiente.id) }
                     )
                 }
             }
@@ -120,13 +186,21 @@ fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .height(56.dp)
             ) {
-                Text("Beber $copo ml")
+                Text("Beber ${selecionado.ml} ml")
             }
-            TextButton(
-                onClick = { viewModel.desfazerUltimo() },
-                enabled = registros.isNotEmpty()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Desfazer último")
+                TextButton(onClick = { mostrarOutroValor = true }) {
+                    Text("Outro valor")
+                }
+                TextButton(
+                    onClick = { viewModel.desfazerUltimo() },
+                    enabled = registros.isNotEmpty()
+                ) {
+                    Text("Desfazer último")
+                }
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -162,11 +236,62 @@ fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = hora, style = MaterialTheme.typography.bodyLarge)
-                        Text(text = "${registro.ml} ml", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = "${registro.ml} ml",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CartaoRecipiente(
+    recipiente: Recipiente,
+    selecionado: Boolean,
+    aoTocar: () -> Unit
+) {
+    val corFundo = if (selecionado) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val corBorda = if (selecionado) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+    Surface(
+        onClick = aoTocar,
+        shape = RoundedCornerShape(16.dp),
+        color = corFundo,
+        border = BorderStroke(if (selecionado) 2.dp else 1.dp, corBorda),
+        modifier = Modifier.width(104.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            IconeRecipiente(
+                tipo = tipoDoRecipiente(recipiente.ml),
+                cor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = recipiente.nome,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "${recipiente.ml} ml",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

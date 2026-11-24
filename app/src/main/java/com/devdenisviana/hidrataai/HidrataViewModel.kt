@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class HidrataViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val dao = BancoHidrata.obter(application).registroDao()
+    private val banco = BancoHidrata.obter(application)
+    private val registroDao = banco.registroDao()
+    private val recipienteDao = banco.recipienteDao()
 
     private val periodoDeHoje = flow {
         while (true) {
@@ -31,28 +34,55 @@ class HidrataViewModel(application: Application) : AndroidViewModel(application)
     }
 
     val registrosDeHoje: StateFlow<List<RegistroAgua>> = periodoDeHoje
-        .flatMapLatest { (inicio, fim) -> dao.registrosDoPeriodo(inicio, fim) }
+        .flatMapLatest { (inicio, fim) -> registroDao.registrosDoPeriodo(inicio, fim) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val totalDeHojeMl: StateFlow<Int> = registrosDeHoje
         .map { lista -> lista.sumOf { it.ml } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val _copoMl = MutableStateFlow(200)
-    val copoMl: StateFlow<Int> = _copoMl
+    val recipientes: StateFlow<List<Recipiente>> = recipienteDao.todos()
+        .map { personalizados -> RECIPIENTES_PADRAO + personalizados }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RECIPIENTES_PADRAO)
 
-    fun escolherCopo(ml: Int) {
-        _copoMl.value = ml
+    private val recipienteEscolhidoId = MutableStateFlow(ID_RECIPIENTE_INICIAL)
+
+    val recipienteSelecionado: StateFlow<Recipiente> =
+        combine(recipientes, recipienteEscolhidoId) { lista, id ->
+            lista.firstOrNull { it.id == id } ?: RECIPIENTES_PADRAO.first()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RECIPIENTES_PADRAO.first())
+
+    fun escolherRecipiente(id: Long) {
+        recipienteEscolhidoId.value = id
     }
 
     fun beber() {
-        val ml = _copoMl.value
-        viewModelScope.launch {
-            dao.inserir(RegistroAgua(horaMillis = System.currentTimeMillis(), ml = ml))
-        }
+        registrar(recipienteSelecionado.value.ml)
+    }
+
+    fun beberOutroValor(ml: Int) {
+        if (registroValido(ml)) registrar(ml)
     }
 
     fun desfazerUltimo() {
-        viewModelScope.launch { dao.desfazerUltimo() }
+        viewModelScope.launch { registroDao.desfazerUltimo() }
+    }
+
+    fun criarRecipiente(nome: String, ml: Int) {
+        if (!recipienteValido(nome, ml)) return
+        viewModelScope.launch {
+            recipienteDao.inserir(Recipiente(nome = nome.trim(), ml = ml))
+        }
+    }
+
+    fun apagarRecipiente(recipiente: Recipiente) {
+        if (recipiente.id <= 0) return
+        viewModelScope.launch { recipienteDao.apagar(recipiente) }
+    }
+
+    private fun registrar(ml: Int) {
+        viewModelScope.launch {
+            registroDao.inserir(RegistroAgua(horaMillis = System.currentTimeMillis(), ml = ml))
+        }
     }
 }
