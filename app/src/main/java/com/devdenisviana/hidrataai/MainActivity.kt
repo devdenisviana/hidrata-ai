@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                     when (abaAtual) {
                         Aba.HOJE -> TelaHoje(viewModel = viewModel, modifier = conteudo)
                         Aba.HISTORICO -> TelaEmBreve(titulo = "Histórico", modifier = conteudo)
-                        Aba.AJUSTES -> TelaEmBreve(titulo = "Ajustes", modifier = conteudo)
+                        Aba.AJUSTES -> TelaAjustes(viewModel = viewModel, modifier = conteudo)
                     }
                 }
             }
