@@ -4,6 +4,37 @@ Aplicativo Android para acompanhar o consumo diário de água. Você escolhe o r
 
 Projeto de portfólio, feito do zero em **Kotlin** com **Jetpack Compose**.
 
+## Capturas de tela
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/tela-1-hoje.png" alt="Tela Hoje do Hidrata Aí" width="260"><br>
+      <b>Tela Hoje</b>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/tela-2-lembretes.png" alt="Lembretes e recipientes no Hidrata Aí" width="260"><br>
+      <b>Lembretes e recipientes</b>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/tela-3-ajustes.png" alt="Ajustes de meta e peso no Hidrata Aí" width="260"><br>
+      <b>Meta e peso</b>
+    </td>
+  </tr>
+</table>
+
+### Tela Hoje
+
+O círculo mostra quanto da meta do dia já foi bebido e quanto ainda falta. Abaixo dele, a lista de recipientes (copo, copo grande, garrafinha, garrafa e os que você criar): escolha um e toque em **Beber** para registrar. Também dá para digitar **outro valor** em ml ou **desfazer o último** registro. No fim da tela ficam os registros do dia, com horário e quantidade.
+
+### Lembretes e recipientes
+
+Nos Ajustes, o interruptor liga os lembretes de água. Você escolhe o intervalo entre os avisos (1, 2, 3 ou 4 horas) e o horário de início e de fim, para não ser avisado fora do seu dia. O botão **Enviar lembrete de teste** mostra como a notificação aparece. Os lembretes param sozinhos quando a meta do dia é atingida. Mais abaixo, você cria os seus próprios recipientes, com nome e tamanho em ml.
+
+### Meta e peso
+
+A meta diária é sua: digite o valor em ml e salve. Se preferir uma sugestão, informe o peso (kg) e o app calcula uma referência de 35 ml por kg. É só um ponto de partida, e você pode ajustar do seu jeito. O peso fica guardado apenas no aparelho.
+
 ## Funcionalidades
 
 - **Meta diária** personalizável, com sugestão opcional pelo peso (35 ml por kg).
