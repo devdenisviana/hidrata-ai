@@ -22,6 +22,7 @@ class HidrataViewModel(application: Application) : AndroidViewModel(application)
     private val banco = BancoHidrata.obter(application)
     private val registroDao = banco.registroDao()
     private val recipienteDao = banco.recipienteDao()
+    private val preferencias = Preferencias(application)
 
     private val periodoDeHoje = flow {
         while (true) {
@@ -52,6 +53,12 @@ class HidrataViewModel(application: Application) : AndroidViewModel(application)
             lista.firstOrNull { it.id == id } ?: RECIPIENTES_PADRAO.first()
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RECIPIENTES_PADRAO.first())
 
+    private val _metaMl = MutableStateFlow(preferencias.lerMetaMl())
+    val metaMl: StateFlow<Int> = _metaMl
+
+    private val _pesoKg = MutableStateFlow(preferencias.lerPesoKg())
+    val pesoKg: StateFlow<Int> = _pesoKg
+
     fun escolherRecipiente(id: Long) {
         recipienteEscolhidoId.value = id
     }
@@ -78,6 +85,18 @@ class HidrataViewModel(application: Application) : AndroidViewModel(application)
     fun apagarRecipiente(recipiente: Recipiente) {
         if (recipiente.id <= 0) return
         viewModelScope.launch { recipienteDao.apagar(recipiente) }
+    }
+
+    fun definirMeta(ml: Int) {
+        if (!metaValida(ml)) return
+        preferencias.salvarMetaMl(ml)
+        _metaMl.value = ml
+    }
+
+    fun definirPeso(kg: Int) {
+        if (!pesoValido(kg)) return
+        preferencias.salvarPesoKg(kg)
+        _pesoKg.value = kg
     }
 
     private fun registrar(ml: Int) {

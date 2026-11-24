@@ -35,4 +35,28 @@ class ValidacaoTest {
         assertFalse(recipienteValido("Garrafa", 0))
         assertFalse(recipienteValido("Garrafa", 6000))
     }
+
+    @Test
+    fun metaAceitaDeQuinhentosAteDezMilMl() {
+        assertTrue(metaValida(500))
+        assertTrue(metaValida(10_000))
+    }
+
+    @Test
+    fun metaRecusaForaDoIntervalo() {
+        assertFalse(metaValida(499))
+        assertFalse(metaValida(10_001))
+    }
+
+    @Test
+    fun pesoAceitaDeVinteATrezentosKg() {
+        assertTrue(pesoValido(20))
+        assertTrue(pesoValido(300))
+    }
+
+    @Test
+    fun pesoRecusaForaDoIntervalo() {
+        assertFalse(pesoValido(19))
+        assertFalse(pesoValido(301))
+    }
 }

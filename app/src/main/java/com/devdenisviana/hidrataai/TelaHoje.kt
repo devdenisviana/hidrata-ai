@@ -52,7 +52,7 @@ fun TelaHoje(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
     val recipientes by viewModel.recipientes.collectAsState()
     val selecionado by viewModel.recipienteSelecionado.collectAsState()
 
-    val meta = META_PADRAO_ML
+    val meta by viewModel.metaMl.collectAsState()
     val faltam = restanteMl(total, meta)
     val progresso by animateFloatAsState(
         targetValue = fracaoDaMeta(total, meta),
