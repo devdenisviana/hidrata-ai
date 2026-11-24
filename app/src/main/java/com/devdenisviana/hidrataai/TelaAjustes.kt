@@ -30,7 +30,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun TelaAjustes(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
+fun TelaAjustes(
+    viewModel: HidrataViewModel,
+    lembretesViewModel: LembretesViewModel,
+    modifier: Modifier = Modifier
+) {
     val metaAtual by viewModel.metaMl.collectAsState()
     val pesoAtual by viewModel.pesoKg.collectAsState()
     val recipientes by viewModel.recipientes.collectAsState()
@@ -115,6 +119,9 @@ fun TelaAjustes(viewModel: HidrataViewModel, modifier: Modifier = Modifier) {
         ) {
             Text("Sugerir meta")
         }
+
+        Spacer(Modifier.height(32.dp))
+        SecaoLembretes(viewModel = lembretesViewModel)
 
         Spacer(Modifier.height(32.dp))
         Text(text = "Meus recipientes", style = MaterialTheme.typography.titleMedium)

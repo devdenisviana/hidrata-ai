@@ -15,6 +15,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,6 +27,8 @@ import com.devdenisviana.hidrataai.ui.theme.HidrataAiTheme
 class MainActivity : ComponentActivity() {
 
     private val viewModel: HidrataViewModel by viewModels()
+    private val historicoViewModel: HistoricoViewModel by viewModels()
+    private val lembretesViewModel: LembretesViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,9 +36,11 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         )
+        AgendadorLembretes.agendar(applicationContext)
         setContent {
             HidrataAiTheme {
                 var abaAtual by rememberSaveable { mutableStateOf(Aba.HOJE) }
+                val meta by viewModel.metaMl.collectAsState()
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -61,8 +66,16 @@ class MainActivity : ComponentActivity() {
                     val conteudo = Modifier.padding(innerPadding)
                     when (abaAtual) {
                         Aba.HOJE -> TelaHoje(viewModel = viewModel, modifier = conteudo)
-                        Aba.HISTORICO -> TelaEmBreve(titulo = "Histórico", modifier = conteudo)
-                        Aba.AJUSTES -> TelaAjustes(viewModel = viewModel, modifier = conteudo)
+                        Aba.HISTORICO -> TelaHistorico(
+                            viewModel = historicoViewModel,
+                            metaMl = meta,
+                            modifier = conteudo
+                        )
+                        Aba.AJUSTES -> TelaAjustes(
+                            viewModel = viewModel,
+                            lembretesViewModel = lembretesViewModel,
+                            modifier = conteudo
+                        )
                     }
                 }
             }
